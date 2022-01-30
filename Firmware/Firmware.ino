@@ -1,4 +1,4 @@
-#define DEBUG 1 // 1 для отладки, 0 для работы
+#define DEBUG 0 // 1 для отладки, 0 для работы
 #define VER 1
 #define SPI_CLK  15
 #define SPI_MISO 14
@@ -40,7 +40,7 @@ word EEMEM aTd;   word Td;
 byte EEMEM aG;    byte G;
 byte EEMEM aREG;  byte REG;
 byte EEMEM aREF;  byte REF;
-byte mode =1;
+byte mode =0;
 /* Режимы работы
  * 0 - Ожидание команд
  * 1 - Регистрация
@@ -193,13 +193,20 @@ void ADCinit(){ // Инициализация АЦП
   }
 }
 void setup() {
-  Serial.begin(9600);
-  while (!Serial) {
-    ; // wait for serial port to connect. Needed for native USB port only
-  }
+  Serial.begin(500000);
+  Serial.setTimeout(5);
+  Serial1.begin(9600);
+  Serial1.setTimeout(5);
+  //while (!Serial) {
+  //  ; // wait for serial port to connect. Needed for native USB port only
+  //}
   default_settings();
   checkEEPROM(); // проверка корректности памяти устройства
   ADCinit();
+  if (REG == 1) { // Начать регистрацию автоматически
+    ads1220.Start_Conv();
+    mode=1; 
+  }
 }
 void SendRegisters(){ // Отправить состояние регистров в порт
       Serial.print("CH1 ");
@@ -267,17 +274,17 @@ void SerialCommand(){ // Обработка дистанционного упр�
     if (CMD == 'G') {                    // Запуск регистрации
       mode = 1;
       ads1220.Start_Conv();
-      Serial.print(mode);
+      Serial.println(mode);
     }
     if (CMD == 'H') {                    // Остановка регистрации
       mode = 0;
       ads1220.ads1220_Reset();
       ADCinit();
-      Serial.print(mode);
+      Serial.println(mode);
     }
     if (CMD == 'S') {                    // Сохранение настроек
       SaveConfig();
-      Serial.print("OK");
+      Serial.println("OK");
     }
     if (CMD == 'C') {                    // Настройка параметров
        CMD1 = Serial.read(); //Тип параметра
@@ -351,6 +358,7 @@ void SerialCommand(){ // Обработка дистанционного упр�
           if (((Val == 1)||(Val == 2)||(Val == 4)||(Val == 8)||(Val == 16)||(Val == 32)||(Val == 64)||(Val == 128))) 
               G = Val;
           Serial.println(G);
+          ADCinit();
        }
        if (CMD1 == 'F'){ // Опорное напряжение
           Val = Serial.parseInt(); //Номер порта 
@@ -359,6 +367,7 @@ void SerialCommand(){ // Обработка дистанционного упр�
           else
             REF = 1;
           Serial.println(REF);
+          ADCinit();
        }
        if (CMD1 == 'M'){ // Автостарт
           Val = Serial.parseInt(); //Номер порта 
@@ -400,6 +409,10 @@ void SendValue24(byte CH) { // Процедура измерения и отпр
     adc_data=ads1220.Read_WaitForData(); // Чтение измерения
     break;
   }
+  Serial.print(CH);
+  Serial.print(",");
+  Serial.println(adc_data);
+  /*
   byte Bit0 = 0, Bit1 = 0, Bit2 = 0; // Инициализировать переменные байтов
   // Разбить число на 3 8 битных пакета
   Bit0 = adc_data & B11111111; // Выбор первых 8 бит из числа
@@ -408,6 +421,7 @@ void SendValue24(byte CH) { // Процедура измерения и отпр
   Serial.write(Bit0); // Отправть на ПК байт 0
   Serial.write(Bit1); // Отправить на ПК байт 1
   Serial.write(Bit2); // Отправить на ПК байт 2
+  */
 }
 void SendValue16(byte CH) { // Процедура измерения и отправки оного числа в порт
   uint16_t adc_data=0;
@@ -426,12 +440,17 @@ void SendValue16(byte CH) { // Процедура измерения и отпр
     adc_data=analogRead(AI3); // Чтение измерения
     break;
   }
+  Serial.print(CH+4);
+  Serial.print(",");
+  Serial.println(adc_data);
+  /*
   byte Bit0 = 0, Bit1 = 0; // Инициализировать переменные байтов
   // Разбить число на 2 8 битных пакета
   Bit0 = adc_data & B11111111; // Выбор первых 8 бит из числа
   Bit1 = adc_data >> 8; // Сдвинуть на 8 бит и записать первые из них
   Serial.write(Bit0); // Отправть на ПК байт 0
   Serial.write(Bit1); // Отправить на ПК байт 1
+  */
 }
 void SendValue8(byte CH) { // Процедура измерения и отправки оного числа в порт
   byte D_data=0;
@@ -450,11 +469,18 @@ void SendValue8(byte CH) { // Процедура измерения и отпр�
     D_data=digitalRead(IO3); // Чтение измерения
     break;
   }
-  Serial.write(D_data); // Отправть на ПК байт 0
+  Serial.print(CH+4);
+  Serial.print(",");
+  Serial.println(D_data);
+  //Serial.write(D_data); // Отправть на ПК байт 0
 }
 void SendData() { // Чтение и отправка данных в порт
   uint16_t Period = millis()-dt;
   dt = millis();
+  Serial.print('t');
+  Serial.print(",");
+  Serial.println(Period);
+  /*
   Serial.write(B11111111); // Стартовый байт
   byte Bit0 = 0, Bit1 = 0; // Инициализировать переменные байтов
   // Разбить число на 2 8 битных пакета
@@ -462,6 +488,7 @@ void SendData() { // Чтение и отправка данных в порт
   Bit1 = Period >> 8; // Сдвинуть на 8 бит и записать первые из них
   Serial.write(Bit0); // Отправть на ПК байт 0
   Serial.write(Bit1); // Отправить на ПК байт 1
+  */
   if (bitRead(CH1,2)==1){ // если включен аналоговый вход
     SendValue24(1);
   }
