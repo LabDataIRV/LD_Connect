@@ -1,3 +1,11 @@
+// Проект LD.CONNECT
+// Автоматизированная беспроводная система сбора данных
+// Прошивка Ардуино ProMicro v.0.1a
+// Страница проекта:
+// https://labdata.ru/projects/ld_connect
+//
+// (c) LabData.ru, 2022
+//------------------------------------------------------
 #define DEBUG 0 // 1 для отладки, 0 для работы
 #define VER 1
 #define SPI_CLK  15
@@ -5,25 +13,19 @@
 #define SPI_MOSI 16
 #define ADC_CS   7
 #define ADC_DRDY 2
-#define AI0 A0
-#define AI1 A1
-#define AI2 A2
-#define AI3 A3
-#define IO0 18
-#define IO1 19
-#define IO2 20
-#define IO3 21
+#define AI0 A3
+#define AI1 A2
+#define AI2 A1
+#define AI3 A0
+#define IO0 21
+#define IO1 20
+#define IO2 19
+#define IO3 18
 
 #include <SPI.h>
 #include "LD_Protocentral_ADS1220.h"
-#define VREF         2.048            // Internal reference of 2.048V
-#define VFSR         VREF/PGA
-#define FULL_SCALE   (((long int)1<<23)-1)
-//byte PGA = PGA_GAIN_1; // Programmable Gain = 1,2,4,8,16,32,64,128
-//byte FIR = FIR_OFF; // FIR_OFF, FIR_5060, FIR_50Hz, FIR_60Hz
 Protocentral_ADS1220 ads1220;
-//int32_t adc_data;
-//uint8_t  Td = 10;
+bool useBT = 0;
 uint32_t ADC_t = 0;
 uint32_t dt = 0;
 byte ports[] = {0,0,0,0}; 
@@ -63,7 +65,7 @@ void default_settings(){ // Установить настройки по умо�
   Td = 10; //мс 100 Гц
   G = 1;
   REG = 0; // откл. авто рег
-  REF = 0; // 5 D
+  REF = 0; // 5 V
   // Доп входы цифровые
   bitWrite(AUX1, 1, 1);
   bitWrite(AUX2, 1, 1);
@@ -193,12 +195,12 @@ void ADCinit(){ // Инициализация АЦП
   }
 }
 void setup() {
-  Serial.begin(500000);
-  Serial.setTimeout(5);
+  Serial.begin(9600);
+  Serial.setTimeout(100);
   Serial1.begin(9600);
-  Serial1.setTimeout(5);
+  Serial1.setTimeout(100);
   //while (!Serial) {
-  //  ; // wait for serial port to connect. Needed for native USB port only
+  //  ; 
   //}
   default_settings();
   checkEEPROM(); // проверка корректности памяти устройства
@@ -209,45 +211,101 @@ void setup() {
   }
 }
 void SendRegisters(){ // Отправить состояние регистров в порт
+  if (useBT){
+      Serial1.print("CH1 ");
+      Serial1.print(bitRead(CH1,0));
+      Serial1.print(bitRead(CH1,1));
+      Serial1.print(bitRead(CH1,2));
+      Serial1.println(bitRead(CH1,3));
+      Serial1.print("CH2 ");
+      Serial1.print(bitRead(CH2,0));
+      Serial1.print(bitRead(CH2,1));
+      Serial1.print(bitRead(CH2,2));
+      Serial1.println(bitRead(CH2,3));
+      Serial1.print("CH3 ");
+      Serial1.print(bitRead(CH3,0));
+      Serial1.print(bitRead(CH3,1));
+      Serial1.print(bitRead(CH3,2));
+      Serial1.println(bitRead(CH3,3));
+      Serial1.print("CH4 "); 
+      Serial1.print(bitRead(CH4,0));
+      Serial1.print(bitRead(CH4,1));
+      Serial1.print(bitRead(CH4,2));
+      Serial1.println(bitRead(CH4,3));
+      Serial1.print("AUX1 ");
+      Serial1.print(bitRead(AUX1,0));
+      Serial1.print(bitRead(AUX1,1));
+      Serial1.print(bitRead(AUX1,2));
+      Serial1.println(bitRead(AUX1,3));
+      Serial1.print("AUX2 ");
+      Serial1.print(bitRead(AUX2,0));
+      Serial1.print(bitRead(AUX2,1));
+      Serial1.print(bitRead(AUX2,2));
+      Serial1.println(bitRead(AUX2,3));
+      Serial1.print("AUX3 ");
+      Serial1.print(bitRead(AUX3,0));
+      Serial1.print(bitRead(AUX3,1));
+      Serial1.print(bitRead(AUX3,2));
+      Serial1.println(bitRead(AUX3,3));
+      Serial1.print("AUX4 ");
+      Serial1.print(bitRead(AUX4,0));
+      Serial1.print(bitRead(AUX4,1));
+      Serial1.print(bitRead(AUX4,2));
+      Serial1.println(bitRead(AUX4,3));
+      Serial1.print ("Td ");
+      Serial1.println(Td);
+      Serial1.print("G ");
+      Serial1.println(G);
+      Serial1.print("REG ");
+      Serial1.println(REG);
+      Serial1.print("REF ");
+      Serial1.println(REF);
+      Serial1.print("Ports:"); 
+      Serial1.print(ports[0]); 
+      Serial1.print(ports[1]);
+      Serial1.print(ports[2]); 
+      Serial1.print(ports[3]);
+      Serial.println();
+  } else {
       Serial.print("CH1 ");
-      Serial.print(bitRead(CH1,0)); Serial.print("|");
-      Serial.print(bitRead(CH1,1)); Serial.print("|");
-      Serial.print(bitRead(CH1,2)); Serial.print("|");
+      Serial.print(bitRead(CH1,0)); 
+      Serial.print(bitRead(CH1,1)); 
+      Serial.print(bitRead(CH1,2)); 
       Serial.println(bitRead(CH1,3));
       Serial.print("CH2 ");
-      Serial.print(bitRead(CH2,0)); Serial.print("|");
-      Serial.print(bitRead(CH2,1)); Serial.print("|");
-      Serial.print(bitRead(CH2,2)); Serial.print("|");
+      Serial.print(bitRead(CH2,0)); 
+      Serial.print(bitRead(CH2,1)); 
+      Serial.print(bitRead(CH2,2)); 
       Serial.println(bitRead(CH2,3));
       Serial.print("CH3 ");
-      Serial.print(bitRead(CH3,0)); Serial.print("|");
-      Serial.print(bitRead(CH3,1)); Serial.print("|");
-      Serial.print(bitRead(CH3,2)); Serial.print("|");
+      Serial.print(bitRead(CH3,0)); 
+      Serial.print(bitRead(CH3,1)); 
+      Serial.print(bitRead(CH3,2)); 
       Serial.println(bitRead(CH3,3));
       Serial.print("CH4 "); 
-      Serial.print(bitRead(CH4,0)); Serial.print("|");
-      Serial.print(bitRead(CH4,1)); Serial.print("|");
-      Serial.print(bitRead(CH4,2)); Serial.print("|");
+      Serial.print(bitRead(CH4,0)); 
+      Serial.print(bitRead(CH4,1)); 
+      Serial.print(bitRead(CH4,2)); 
       Serial.println(bitRead(CH4,3));
       Serial.print("AUX1 ");
-      Serial.print(bitRead(AUX1,0)); Serial.print("|");
-      Serial.print(bitRead(AUX1,1)); Serial.print("|");
-      Serial.print(bitRead(AUX1,2)); Serial.print("|");
+      Serial.print(bitRead(AUX1,0)); 
+      Serial.print(bitRead(AUX1,1)); 
+      Serial.print(bitRead(AUX1,2)); 
       Serial.println(bitRead(AUX1,3));
       Serial.print("AUX2 ");
-      Serial.print(bitRead(AUX2,0)); Serial.print("|");
-      Serial.print(bitRead(AUX2,1)); Serial.print("|");
-      Serial.print(bitRead(AUX2,2)); Serial.print("|");
+      Serial.print(bitRead(AUX2,0)); 
+      Serial.print(bitRead(AUX2,1)); 
+      Serial.print(bitRead(AUX2,2)); 
       Serial.println(bitRead(AUX2,3));
       Serial.print("AUX3 ");
-      Serial.print(bitRead(AUX3,0)); Serial.print("|");
-      Serial.print(bitRead(AUX3,1)); Serial.print("|");
-      Serial.print(bitRead(AUX3,2)); Serial.print("|");
+      Serial.print(bitRead(AUX3,0)); 
+      Serial.print(bitRead(AUX3,1)); 
+      Serial.print(bitRead(AUX3,2)); 
       Serial.println(bitRead(AUX3,3));
       Serial.print("AUX4 ");
-      Serial.print(bitRead(AUX4,0)); Serial.print("|");
-      Serial.print(bitRead(AUX4,1)); Serial.print("|");
-      Serial.print(bitRead(AUX4,2)); Serial.print("|");
+      Serial.print(bitRead(AUX4,0)); 
+      Serial.print(bitRead(AUX4,1)); 
+      Serial.print(bitRead(AUX4,2)); 
       Serial.println(bitRead(AUX4,3));
       Serial.print ("Td ");
       Serial.println(Td);
@@ -258,137 +316,290 @@ void SendRegisters(){ // Отправить состояние регистро�
       Serial.print("REF ");
       Serial.println(REF);
       Serial.print("Ports:"); 
-      Serial.print(ports[0]); Serial.print("|"); 
-      Serial.print(ports[1]); Serial.print("|");
-      Serial.print(ports[2]); Serial.print("|"); 
-      Serial.print(ports[3]); Serial.println();
+      Serial.print(ports[0]);  
+      Serial.print(ports[1]); 
+      Serial.print(ports[2]);  
+      Serial.print(ports[3]); 
+      Serial.println();      
+  }
+}
+void SendMessage(char *Msg){
+  if (useBT) 
+            Serial1.println(Msg);
+      else
+            Serial.println(Msg);
 }
 void SerialCommand(){ // Обработка дистанционного управления
-  if (Serial.available()){
+  if (Serial.available())  { useBT = 0; }
+  if (Serial1.available()) { useBT = 1; }
+  if (Serial.available()||Serial1.available()){
     char CMD, CMD1, CMD2, CMD3;
     byte Val;
     uint16_t Val16;
-    CMD = Serial.read();
-    if (CMD == 'M') Serial.println(mode);  //Текущий режим
+    if (useBT) 
+      CMD = Serial1.read();
+    else 
+      CMD = Serial.read();
+    if (CMD == 'M') 
+      if (useBT) 
+            Serial1.println(mode);  //Текущий режим
+       else
+            Serial.println(mode);  //Текущий режим
     if (CMD == 'R') SendRegisters();     //Состояние регистров
-    if (CMD == 'G') {                    // Запуск регистрации
+    if (CMD == 'L') {                    // Запуск регистрации
       mode = 1;
       ads1220.Start_Conv();
-      Serial.println(mode);
+      if (useBT) 
+            Serial1.println(mode);
+      else
+            Serial.println(mode);
     }
     if (CMD == 'H') {                    // Остановка регистрации
       mode = 0;
       ads1220.ads1220_Reset();
       ADCinit();
-      Serial.println(mode);
+      if (useBT) 
+            Serial1.println(mode);
+      else
+            Serial.println(mode);
     }
     if (CMD == 'S') {                    // Сохранение настроек
       SaveConfig();
-      Serial.println("OK");
+      if (useBT) 
+            Serial1.println("OK");
+      else
+            Serial.println("OK");
     }
     if (CMD == 'C') {                    // Настройка параметров
-       CMD1 = Serial.read(); //Тип параметра
+       if (useBT)
+          CMD1 = Serial1.read(); //Тип параметра
+       else
+          CMD1 = Serial.read(); //Тип параметра
+          
        if (CMD1 == 'A'){ // Вход АЦП
-          CMD2 = Serial.read(); //Номер порта
-          CMD3 = Serial.read(); //настройка
-          Val = Serial.parseInt(); // значение
+          if (useBT){
+            CMD2 = Serial1.read(); //Номер порта
+            CMD3 = Serial1.read(); //настройка
+            Val = Serial1.parseInt(); // значение
+          }else{
+            CMD2 = Serial.read(); //Номер порта
+            CMD3 = Serial.read(); //настройка
+            Val = Serial.parseInt(); // значение
+          }  
           switch (CMD2){ // выбор порта
             case '1':
-              if (CMD3 == 'E') bitWrite(CH1,2,constrain(Val, 0, 1));
-              Serial.println(CH1, BIN);
+              if (CMD3 == 'E') {
+                bitWrite(CH1,2,constrain(Val, 0, 1));
+                SendMessage("A1E");
+              }
+              //if (useBT)
+              //  Serial1.println(CH1, BIN);
+              //else
+              //  Serial.println(CH1, BIN);
               break;
             case '2':
-              if (CMD3 == 'E') bitWrite(CH2,2,constrain(Val, 0, 1));
-              Serial.println(CH2, BIN);
+              if (CMD3 == 'E') {
+                bitWrite(CH2,2,constrain(Val, 0, 1));
+                SendMessage("A2E");
+              }
+              //if (useBT)
+              //  Serial1.println(CH2, BIN);
+              //else
+              //  Serial.println(CH2, BIN);
               break;
             case '3':
-              if (CMD3 == 'E') bitWrite(CH3,2,constrain(Val, 0, 1));
-              Serial.println(CH3, BIN);
+              if (CMD3 == 'E') {
+                bitWrite(CH3,2,constrain(Val, 0, 1));
+                SendMessage("A3E");
+              }
+              //if (useBT)
+              //  Serial1.println(CH3, BIN);
+              //else
+              //  Serial.println(CH3, BIN);
               break;
             case '4':
-              if (CMD3 == 'E') bitWrite(CH4,2,constrain(Val, 0, 1));
-              Serial.println(CH3, BIN);
+              if (CMD3 == 'E') {
+                bitWrite(CH4,2,constrain(Val, 0, 1));
+                SendMessage("A4E");
+              }
+              //if (useBT)
+              //  Serial1.println(CH4, BIN);
+              //else
+              //  Serial.println(CH4, BIN);
               break;
           }
           PortsConfig();
        }
        if (CMD1 == 'P'){ // Вход Ардуино
+         if (useBT){
+          CMD2 = Serial1.read(); //Номер порта
+          CMD3 = Serial1.read(); //настройка
+          Val = Serial1.parseInt(); // значение
+         } else {
           CMD2 = Serial.read(); //Номер порта
           CMD3 = Serial.read(); //настройка
           Val = Serial.parseInt(); // значение
+         }
           switch (CMD2){ // выбор порта
-            case '1':
-              if (CMD3 == 'D') bitWrite(AUX1,0,constrain(Val, 0, 1));
-              if (CMD3 == '#') bitWrite(AUX1,1,constrain(Val, 0, 1));
-              if (CMD3 == 'E') bitWrite(AUX1,2,constrain(Val, 0, 1));
-              if (CMD3 == 'B') bitWrite(AUX1,3,constrain(Val, 0, 1));
-              Serial.println(AUX1, BIN);
+            case '1': 
+              if (CMD3 == 'D') {
+                bitWrite(AUX1,0,constrain(Val, 0, 1));
+                SendMessage("P1D");
+              }
+              if (CMD3 == '#') {
+                bitWrite(AUX1,1,constrain(Val, 0, 1));
+                SendMessage("P1A");
+              }
+              if (CMD3 == 'E') {
+                bitWrite(AUX1,2,constrain(Val, 0, 1));
+                SendMessage("P1E");
+              }
+              if (CMD3 == 'B') {
+                bitWrite(AUX1,3,constrain(Val, 0, 1));
+                SendMessage("P1B");
+              }
+              //if (useBT) Serial1.println(AUX1, BIN);
+              //else       Serial.println(AUX1, BIN);
               break;
             case '2':
-              if (CMD3 == 'D') bitWrite(AUX2,0,constrain(Val, 0, 1));
-              if (CMD3 == '#') bitWrite(AUX2,1,constrain(Val, 0, 1));
-              if (CMD3 == 'E') bitWrite(AUX2,2,constrain(Val, 0, 1));
-              if (CMD3 == 'B') bitWrite(AUX2,3,constrain(Val, 0, 1));
-              Serial.println(AUX2, BIN);
+              if (CMD3 == 'D') {
+                bitWrite(AUX2,0,constrain(Val, 0, 1));
+                SendMessage("P2D");
+              }
+              if (CMD3 == '#') {
+                bitWrite(AUX2,1,constrain(Val, 0, 1));
+                SendMessage("P2A");
+              }
+              if (CMD3 == 'E') {
+                bitWrite(AUX2,2,constrain(Val, 0, 1));
+                SendMessage("P2E");
+              }
+              if (CMD3 == 'B') {
+                bitWrite(AUX2,3,constrain(Val, 0, 1));
+                SendMessage("P2B");
+              }
+              //if (useBT)   Serial1.println(AUX2, BIN);
+              //else    Serial.println(AUX2, BIN);
               break;
             case '3':
-              if (CMD3 == 'D') bitWrite(AUX3,0,constrain(Val, 0, 1));
-              if (CMD3 == '#') bitWrite(AUX3,1,constrain(Val, 0, 1));
-              if (CMD3 == 'E') bitWrite(AUX3,2,constrain(Val, 0, 1));
-              if (CMD3 == 'B') bitWrite(AUX3,3,constrain(Val, 0, 1));
-              Serial.println(AUX3, BIN);
+              if (CMD3 == 'D') {
+                bitWrite(AUX3,0,constrain(Val, 0, 1));
+                SendMessage("P3D");
+              }
+              if (CMD3 == '#') {
+                bitWrite(AUX3,1,constrain(Val, 0, 1));
+                SendMessage("P3A");
+              }
+              if (CMD3 == 'E') {
+                bitWrite(AUX3,2,constrain(Val, 0, 1));
+                SendMessage("P3E");
+              }
+              if (CMD3 == 'B') {
+                bitWrite(AUX3,3,constrain(Val, 0, 1));
+                SendMessage("P3B");
+              }
+              //if (useBT)  Serial1.println(AUX3, BIN);
+              //else        Serial.println(AUX3, BIN);
               break;
             case '4':
-              if (CMD3 == 'D') bitWrite(AUX4,0,constrain(Val, 0, 1));
-              if (CMD3 == '#') bitWrite(AUX4,1,constrain(Val, 0, 1));
-              if (CMD3 == 'E') bitWrite(AUX4,2,constrain(Val, 0, 1));
-              if (CMD3 == 'B') bitWrite(AUX4,3,constrain(Val, 0, 1));
-              Serial.println(AUX4, BIN);
+              if (CMD3 == 'D') {
+                bitWrite(AUX4,0,constrain(Val, 0, 1));
+                SendMessage("P4D");
+              }
+              if (CMD3 == '#') {
+                bitWrite(AUX4,1,constrain(Val, 0, 1));
+                SendMessage("P4A");
+              }
+              if (CMD3 == 'E') {
+                bitWrite(AUX4,2,constrain(Val, 0, 1));
+                SendMessage("P4E");
+              }
+              if (CMD3 == 'B') {
+                bitWrite(AUX4,3,constrain(Val, 0, 1));
+                SendMessage("P4B");
+              }
+              //if (useBT)   Serial1.println(AUX4, BIN);
+              //else         Serial.println(AUX4, BIN);
               break;
           } 
           PortsConfig();
        }
        if (CMD1 == 'T'){ // Период дискретизации
-          Val16 = Serial.parseInt(); //Номер порта 
+          if (useBT){
+            Val16 = Serial1.parseInt();  
+            Serial1.println(Td);
+          } else {
+            Val16 = Serial.parseInt();  
+            Serial.println(Td);
+          }
           Td = constrain(Val16,1,65535);
-          Serial.println(Td);
        }
        if (CMD1 == 'G'){ // Вход усиление
-          Val = Serial.parseInt(); //Номер порта 
+        if (useBT){
+          Val = Serial1.parseInt();  
+          Serial1.println(Val);
+        } else {
+          Val = Serial.parseInt();  
+          Serial.println(Val);
+        }
           if (((Val == 1)||(Val == 2)||(Val == 4)||(Val == 8)||(Val == 16)||(Val == 32)||(Val == 64)||(Val == 128))) 
               G = Val;
-          Serial.println(G);
+          
           ADCinit();
        }
        if (CMD1 == 'F'){ // Опорное напряжение
-          Val = Serial.parseInt(); //Номер порта 
+          if (useBT){
+              Val = Serial1.parseInt(); 
+              Serial1.println(Val);
+          }else {
+            Val = Serial.parseInt(); 
+            Serial.println(Val);
+          }
           if (Val==0) 
             REF = 0;
           else
             REF = 1;
-          Serial.println(REF);
+          
           ADCinit();
        }
        if (CMD1 == 'M'){ // Автостарт
-          Val = Serial.parseInt(); //Номер порта 
+          if (useBT){
+            Val = Serial1.parseInt();
+            Serial1.println(Val);
+          }else {
+            Val = Serial.parseInt();
+            Serial.println(Val);
+          }
           if (Val==0) 
-            REF = 0;
+            REG = 0;
           else
-            REF = 1;
-          Serial.println(REF);
+            REG = 1;
        }     
     }
-    if (CMD == 'P') {                    // Задаем порты
-       CMD = Serial.read(); //Номер порта
-       Val = Serial.parseInt(); //Значение порта
-       if (CMD == '1') ports[0] = Val; // Порт P1
-       if (CMD == '2') ports[1] = Val; // Порт P2
-       if (CMD == '3') ports[2] = Val; // Порт P3
-       if (CMD == '4') ports[3] = Val; // Порт P4 
+    if (CMD == '!') {                    // Задаем порты
+      if (useBT){
+        CMD = Serial1.read(); //Номер порта
+        Val = Serial1.parseInt(); //Значение порта
+      } else {
+        CMD = Serial.read(); //Номер порта
+        Val = Serial.parseInt(); //Значение порта
+      }
+       if (CMD == '1') {
+        ports[0] = Val; // Порт P1
+       }
+       if (CMD == '2') {
+        ports[1] = Val; // Порт P2
+       }
+       if (CMD == '3') {
+        ports[2] = Val; // Порт P3
+       }
+       if (CMD == '4') {
+        ports[3] = Val; // Порт P4 
+       }
     }
   }
 }
-void SendValue24(byte CH) { // Процедура измерения и отправки оного числа в порт
+void SendValue24(byte CH) { // Процедура измерения и отправки числа в порт
   uint32_t adc_data=0;
   // измерение
   switch (CH){
@@ -409,21 +620,17 @@ void SendValue24(byte CH) { // Процедура измерения и отпр
     adc_data=ads1220.Read_WaitForData(); // Чтение измерения
     break;
   }
-  Serial.print(CH);
-  Serial.print(",");
-  Serial.println(adc_data);
-  /*
-  byte Bit0 = 0, Bit1 = 0, Bit2 = 0; // Инициализировать переменные байтов
-  // Разбить число на 3 8 битных пакета
-  Bit0 = adc_data & B11111111; // Выбор первых 8 бит из числа
-  adc_data = adc_data >> 8; Bit1 = adc_data & B11111111; // Выбор вторые  8 бит из числа
-  Bit2 = adc_data >> 8; // Сдвинуть на 8 бит и записать первые из них
-  Serial.write(Bit0); // Отправть на ПК байт 0
-  Serial.write(Bit1); // Отправить на ПК байт 1
-  Serial.write(Bit2); // Отправить на ПК байт 2
-  */
+  if (useBT){
+    Serial1.print(CH);
+    Serial1.print(",");
+    Serial1.println(adc_data);
+  } else {
+    Serial.print(CH);
+    Serial.print(",");
+    Serial.println(adc_data);
+  }
 }
-void SendValue16(byte CH) { // Процедура измерения и отправки оного числа в порт
+void SendValue16(byte CH) { // Процедура измерения и отправки числа в порт
   uint16_t adc_data=0;
   // измерение
   switch (CH){
@@ -440,17 +647,15 @@ void SendValue16(byte CH) { // Процедура измерения и отпр
     adc_data=analogRead(AI3); // Чтение измерения
     break;
   }
-  Serial.print(CH+4);
-  Serial.print(",");
-  Serial.println(adc_data);
-  /*
-  byte Bit0 = 0, Bit1 = 0; // Инициализировать переменные байтов
-  // Разбить число на 2 8 битных пакета
-  Bit0 = adc_data & B11111111; // Выбор первых 8 бит из числа
-  Bit1 = adc_data >> 8; // Сдвинуть на 8 бит и записать первые из них
-  Serial.write(Bit0); // Отправть на ПК байт 0
-  Serial.write(Bit1); // Отправить на ПК байт 1
-  */
+  if (useBT){
+    Serial1.print(CH+4);
+    Serial1.print(",");
+    Serial1.println(adc_data);
+  } else {
+    Serial.print(CH+4);
+    Serial.print(",");
+    Serial.println(adc_data);
+  }
 }
 void SendValue8(byte CH) { // Процедура измерения и отправки оного числа в порт
   byte D_data=0;
@@ -469,26 +674,28 @@ void SendValue8(byte CH) { // Процедура измерения и отпр�
     D_data=digitalRead(IO3); // Чтение измерения
     break;
   }
-  Serial.print(CH+4);
-  Serial.print(",");
-  Serial.println(D_data);
-  //Serial.write(D_data); // Отправть на ПК байт 0
+  if (useBT){
+    Serial1.print(CH+4);
+    Serial1.print(",");
+    Serial1.println(D_data);
+  } else {
+    Serial.print(CH+4);
+    Serial.print(",");
+    Serial.println(D_data);
+  }
 }
 void SendData() { // Чтение и отправка данных в порт
   uint16_t Period = millis()-dt;
   dt = millis();
-  Serial.print('t');
-  Serial.print(",");
-  Serial.println(Period);
-  /*
-  Serial.write(B11111111); // Стартовый байт
-  byte Bit0 = 0, Bit1 = 0; // Инициализировать переменные байтов
-  // Разбить число на 2 8 битных пакета
-  Bit0 = Period & B11111111; // Выбор первых 8 бит из числа
-  Bit1 = Period >> 8; // Сдвинуть на 8 бит и записать первые из них
-  Serial.write(Bit0); // Отправть на ПК байт 0
-  Serial.write(Bit1); // Отправить на ПК байт 1
-  */
+  if (useBT){
+    Serial1.print('t');
+    Serial1.print(",");
+    Serial1.println(Period);
+  } else {
+    Serial.print('t');
+    Serial.print(",");
+    Serial.println(Period);
+  }
   if (bitRead(CH1,2)==1){ // если включен аналоговый вход
     SendValue24(1);
   }
